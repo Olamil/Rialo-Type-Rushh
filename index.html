@@ -1,598 +1,288 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>RialoType — Typing Game</title>
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-<style>
-  :root{
-    --bg:#07100C;
-    --panel:rgba(7,16,12,0.65);
-    --rialo:#06E7A7;   /* Rialo green */
-    --muted:rgba(255,255,255,0.65);
-    --danger:#ff4d4f;
-    --glass: rgba(255,255,255,0.04);
-  }
+  <meta charset="UTF-8" />
+  <title>Rialo Typing Game</title>
+  <style>
+    :root {
+      --rialo-green: #00c27a;
+      --text-color: #ffffff;
+      --wrong: #ff4d4d;
+      --correct: #00ff88;
+      --glow: rgba(255, 255, 255, 0.4);
+    }
 
-  html,body{height:100%;margin:0;background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#fff;}
-  /* background handled by .bg-layer so we can overlay two images faintly */
-  .bg-layer{
-    position:fixed;inset:0;z-index:0;
-    background:
-      url('rialo-logo.png') center top/400px no-repeat,
-      url('spongebob-bg.png') right center/contain no-repeat,
-      linear-gradient(180deg, rgba(4,8,6,0.45), rgba(2,6,4,0.6));
-    opacity:1;
-    pointer-events:none;
-  }
-  .bg-layer::before{
-    content:"";position:absolute;inset:0;background:rgba(0,0,0,0.45);
-  }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: "Poppins", sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background: url('https://i.ibb.co/1fmTxx6/spongebob.png') center/cover no-repeat;
+      background-color: rgba(0, 0, 0, 0.8);
+      background-blend-mode: multiply;
+      color: var(--text-color);
+    }
 
-  /* Page layout */
-  .app {
-    position:relative; z-index:10;
-    min-height:100vh;
-    display:flex;flex-direction:column;
-    align-items:center;justify-content:flex-start;padding:28px;
-  }
+    .game-container {
+      text-align: center;
+      max-width: 800px;
+      padding: 20px;
+      background: rgba(0, 0, 0, 0.6);
+      border-radius: 16px;
+      box-shadow: 0 0 20px var(--rialo-green);
+    }
 
-  header.topbar{
-    width:100%;max-width:1100px;display:flex;align-items:center;justify-content:space-between;margin:10px 0 26px;
-    gap:18px;
-  }
-  .brand{display:flex;align-items:center;gap:12px;font-weight:800;font-size:18px;color:var(--rialo)}
-  .brand .logo-mark{width:44px;height:44px;border-radius:8px;background:linear-gradient(135deg,#062816,#083720);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 26px rgba(6,231,167,0.07)}
-  .nav{display:flex;gap:18px;align-items:center;color:rgba(255,255,255,0.85);font-weight:600}
-  .nav .muted{color:rgba(255,255,255,0.45);font-weight:500;font-size:13px}
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 20px;
+      color: var(--rialo-green);
+    }
 
-  /* Main game panel */
-  .stage {
-    width:100%;max-width:1100px;margin:0 auto;display:flex;gap:28px;align-items:flex-start;
-  }
+    .timer {
+      font-size: 1.5rem;
+      margin-bottom: 15px;
+    }
 
-  .panel-left{
-    flex:1;background:var(--panel);padding:26px;border-radius:14px;backdrop-filter:blur(6px);box-shadow:0 10px 40px rgba(0,0,0,0.6);
-    min-height:520px;display:flex;flex-direction:column;align-items:center;position:relative;
-  }
+    .word-container {
+      font-size: 1.5rem;
+      line-height: 2.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
 
-  /* Timer top right inside panel */
-  .timer-badge{
-    position:absolute;top:18px;right:18px;background:rgba(0,0,0,0.25);padding:8px 12px;border-radius:12px;color:var(--rialo);font-weight:700;font-size:18px;border:1px solid rgba(255,255,255,0.03)
-  }
+    .word {
+      display: inline-block;
+    }
 
-  .title { font-size:22px;color:var(--rialo);margin-bottom:4px;font-weight:800 }
-  .subtitle { color:var(--muted);font-size:13px;margin-bottom:18px }
+    .letter {
+      padding: 2px;
+      transition: 0.15s;
+      border-bottom: 2px solid transparent;
+    }
 
-  /* typing area */
-  .typing-area { width:100%;display:flex;flex-direction:column;align-items:center;gap:18px;margin-top:20px }
-  .guide { color:var(--muted);font-size:15px }
-  .words-wrap { width:100%;max-width:880px;display:flex;flex-wrap:wrap;gap:12px;justify-content:center;padding:12px 8px;transition:all .18s ease }
-  .word-pill{
-    padding:8px 12px;border-radius:10px;background:var(--glass);color:rgba(255,255,255,0.9);font-weight:600;font-size:20px;opacity:0.9;transition:all .12s ease;display:inline-flex;gap:2px;
-  }
-  .word-pill.active{box-shadow:0 8px 30px rgba(6,231,167,0.06);border-bottom:3px solid var(--rialo);transform:translateY(-3px)}
-  .letter{display:inline-block;min-width:12px;text-align:center;padding:0 1px;transition:all .12s ease}
-  .letter.current{background:rgba(255,255,255,0.12);border-radius:6px;box-shadow:0 6px 18px rgba(255,255,255,0.06);color:#fff}
-  .letter.correct{color:var(--rialo);background:transparent}
-  .letter.wrong{color:var(--danger);background:transparent}
+    .letter.active {
+      background-color: var(--glow);
+    }
 
-  /* subtle fade in for words */
-  .word-pill{opacity:0;transform:translateY(8px)}
-  .word-pill.show{opacity:1;transform:translateY(0);transition:all .22s cubic-bezier(.2,.9,.25,1)}
-  
-  /* hidden input to capture typing */
-  #hiddenInput{ position: absolute; left:-9999px; top:auto; width:1px; height:1px; opacity:0; }
+    .letter.correct {
+      color: var(--correct);
+    }
 
-  /* right panel (results / controls) */
-  .panel-right{
-    width:360px;background:rgba(255,255,255,0.03);padding:18px;border-radius:12px;color:var(--muted);min-height:520px;
-    display:flex;flex-direction:column;gap:14px;
-  }
-  .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-  .btn {
-    padding:8px 12px;border-radius:12px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:#fff;font-weight:700;cursor:pointer
-  }
-  .btn.primary { background:var(--rialo);color:#00120b;border:none }
-  .small { font-size:13px;padding:6px 10px;border-radius:8px }
+    .letter.wrong {
+      color: var(--wrong);
+    }
 
-  .result-panel{margin-top:8px;background:rgba(255,255,255,0.02);padding:12px;border-radius:10px;color:#e6fff6}
-  .result-row{display:flex;justify-content:space-between;padding:8px 6px;border-bottom:1px dashed rgba(255,255,255,0.03)}
-  .result-row:last-child{border-bottom:0}
+    input {
+      padding: 10px;
+      font-size: 1rem;
+      border: 2px solid var(--rialo-green);
+      border-radius: 8px;
+      outline: none;
+      text-align: center;
+      margin-bottom: 15px;
+    }
 
-  .result-actions{display:flex;gap:10px;margin-top:14px}
-  .share-x{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--rialo);padding:8px 12px;border-radius:10px;font-weight:700;cursor:pointer}
+    button {
+      padding: 10px 20px;
+      background: var(--rialo-green);
+      border: none;
+      border-radius: 8px;
+      color: #000;
+      font-size: 1rem;
+      cursor: pointer;
+      margin: 5px;
+    }
 
-  /* result modal (fullscreen) */
-  .modal {
-    position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:linear-gradient(180deg,rgba(0,0,0,0.6),rgba(0,0,0,0.8));z-index:60;
-  }
-  .modal .card{background:#06110d;padding:28px;border-radius:14px;min-width:320px;color:#e6fff6;box-shadow:0 18px 60px rgba(0,0,0,0.7)}
-  .modal h2{color:var(--rialo);margin:0 0 8px 0}
-  .stat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:10px}
-  .stat{background:rgba(255,255,255,0.02);padding:12px;border-radius:8px;text-align:center}
-  .stat .label{color:var(--muted);font-size:13px}
-  .stat .value{font-weight:800;font-size:20px;margin-top:6px}
+    button:hover {
+      opacity: 0.85;
+    }
 
-  /* responsive */
-  @media (max-width:900px){
-    .stage{flex-direction:column;padding:18px}
-    .panel-right{width:100%}
-  }
-</style>
+    .result {
+      display: none;
+    }
+
+    .result.active {
+      display: block;
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
 </head>
 <body>
-  <div class="bg-layer" aria-hidden></div>
-  <div class="app">
-    <header class="topbar">
-      <div class="brand">
-        <div class="logo-mark" aria-hidden>
-          <!-- small mark -->
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden><rect x="1" y="1" width="22" height="22" rx="4" fill="#042A1E"/><circle cx="12" cy="11.5" r="5.2" fill="#06E7A7"/></svg>
-        </div>
-        RIALO
-      </div>
-      <nav class="nav">
-        <div>TYPING</div>
-        <div class="muted">LEADERBOARD</div>
-      </nav>
-    </header>
+  <div class="game-container">
+    <h1>🚀 Rialo Typing Challenge</h1>
 
-    <main class="stage" role="main">
-      <section class="panel-left">
-        <div class="timer-badge" id="bigTimer">15s</div>
+    <div class="timer">Time: <span id="time">30</span>s</div>
 
-        <div style="text-align:center;margin-top:8px">
-          <div class="title">RialoType</div>
-          <div class="subtitle">Type fast. Stay sharp. Climb the board.</div>
-        </div>
+    <div class="word-container" id="word-container"></div>
 
-        <div class="typing-area" aria-live="polite">
-          <div class="guide" id="guideText">Start typing to begin</div>
+    <input type="text" id="input" placeholder="Start typing here..." autofocus />
 
-          <div class="words-wrap" id="wordsWrap" aria-hidden="false">
-            <!-- words (10) will be injected here -->
-          </div>
+    <div>
+      <button id="start-btn">Start</button>
+      <button id="play-again" class="hidden">Play Again</button>
+      <button id="share-btn" class="hidden">Share on X</button>
+    </div>
 
-          <!-- hidden input captures keystrokes -->
-          <input id="hiddenInput" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
-          <div style="height:14px"></div>
-          <div style="font-size:13px;color:var(--muted)">Space to submit · Tab to skip · Tab after finish to restart</div>
-        </div>
-      </section>
-
-      <aside class="panel-right" aria-labelledby="results">
-        <div style="display:flex;align-items:center;justify-content:space-between">
-          <div style="font-weight:800;color:var(--rialo)">Session</div>
-          <div style="font-size:13px;color:var(--muted)"></div>
-        </div>
-
-        <div class="controls">
-          <button class="btn" id="btn15">15s</button>
-          <button class="btn" id="btn30">30s</button>
-          <button class="btn" id="btn60">60s</button>
-          <button class="btn primary" id="btnStart">Start</button>
-        </div>
-
-        <div class="result-panel" id="quickStats">
-          <div class="result-row"><div>Time left</div><div id="stat-time">15s</div></div>
-          <div class="result-row"><div>Score</div><div id="stat-score">0</div></div>
-          <div class="result-row"><div>Correct Words</div><div id="stat-correct">0</div></div>
-          <div class="result-row"><div>Accuracy</div><div id="stat-acc">0%</div></div>
-        </div>
-
-        <div style="margin-top:8px;color:var(--muted);font-size:13px">
-          • 10 words on screen · Space to submit · Tab to skip<br>
-          • Letters glow while typing, turn green if correct, red if wrong
-        </div>
-
-        <div class="result-actions" style="margin-top:auto">
-          <button class="share-x" id="shareBtn">Share on X</button>
-        </div>
-      </aside>
-    </main>
-  </div>
-
-  <!-- fullscreen result modal -->
-  <div class="modal" id="resultModal" role="dialog" aria-modal="true" aria-hidden="true">
-    <div class="card">
-      <h2>Results</h2>
-      <div class="stat-grid">
-        <div class="stat"><div class="label">WPM</div><div class="value" id="resWpm">0</div></div>
-        <div class="stat"><div class="label">Accuracy</div><div class="value" id="resAcc">0%</div></div>
-        <div class="stat"><div class="label">Correct</div><div class="value" id="resCorrect">0</div></div>
-        <div class="stat"><div class="label">Total</div><div class="value" id="resTotal">0</div></div>
-      </div>
-      <div style="margin-top:18px;display:flex;gap:10px;justify-content:center">
-        <button class="btn primary" id="playAgain">Play again</button>
-        <button class="btn" id="shareModal">Share on X</button>
-      </div>
+    <div class="result" id="result">
+      <p>You typed <span id="score"></span> words!</p>
     </div>
   </div>
 
-<script>
-/* RialoType — single-file game logic
-   Features:
-   - 10 words displayed
-   - per-letter glow while typing, green on correct, red on wrong
-   - Space to submit a word, Tab to skip (counts incorrect)
-   - Timer starts on first keystroke
-   - WPM / Accuracy calculations in result modal
-*/
+  <script>
+    const words = [
+      // 50 Rialo words
+      "Rialo","Bridge","Flow","Task","Mission","Reward","Token","Event","Smart","Vault",
+      "Quest","Chain","Connect","Launch","Pulse","Dapp","Space","Node","Layer","Mint",
+      "Stake","Web2","Web3","Build","Proof","Speed","Game","Onboard","Level","XP",
+      "User","Wallet","BridgeFi","Key","Boost","Alpha","Score","Track","Arena","Green",
+      "Map","Zone","MissionX","AI","Agent","Future","Orbit","Sync","Start","End",
+      // 50 Web3 words
+      "Ethereum","Blockchain","Crypto","Tokenomics","Wallet","DeFi","NFT","Layer2","ZK","Rollup",
+      "EVM","Arbitrum","Base","Polygon","Solana","Metamask","Chainlink","Airdrop","Bridge","DAO",
+      "Staking","Dapp","Liquidity","Gas","Transaction","Hash","Signature","Decentralized","Protocol","Node",
+      "IPFS","Consensus","Ledger","Proof","Mining","Validator","Private","Public","Address","Keypair",
+      "Contract","Faucet","RPC","Explorer","Governance","Wagmi","GM","LFG","Alpha","BridgeX"
+    ];
 
-const RIALO = [
-  "rialo","bridge","event","trigger","wallet","decentralize","onchain","protocol","node","token",
-  "mint","stake","vault","flow","relay","connector","stream","ledger","hash","chain",
-  "bridgeX","rnetwork","sync","orbit","pulse","quest","mission","portal","loop","anchor",
-  "rnode","rhub","grow","builder","treasury","fund","snapshot","action","signal","bridgein",
-  "bridgeout","rialonet","rpoint","rpass","rclaim","rdeploy","rindex","rflow","rbind","rlink"
-];
+    const container = document.getElementById("word-container");
+    const input = document.getElementById("input");
+    const timeDisplay = document.getElementById("time");
+    const result = document.getElementById("result");
+    const scoreDisplay = document.getElementById("score");
+    const startBtn = document.getElementById("start-btn");
+    const playAgain = document.getElementById("play-again");
+    const shareBtn = document.getElementById("share-btn");
 
-const WEB3 = [
-  "blockchain","wallet","nft","defi","dao","staking","swap","gas","zk","rollup",
-  "validator","oracle","contract","evm","rpc","address","tokenomics","liquidity","bridge","mainnet",
-  "testnet","airdrops","mintlist","minting","burn","hashrate","nonce","signature","privatekey","publickey",
-  "solidity","rust","ipfs","p2p","consensus","fork","gwei","tx","txpool","explorer",
-  "bridgeFee","sequencer","relayer","nodeOperator","onRamp","offRamp","indexer","datafeed","zkproof","mev"
-];
+    let currentWords = [];
+    let currentIndex = 0;
+    let score = 0;
+    let time = 30;
+    let timer;
 
-const WORD_POOL = shuffleArray([...RIALO, ...WEB3]);
+    function shuffle(array) {
+      return array.sort(() => Math.random() - 0.5);
+    }
 
-/* UI elements */
-const wordsWrap = document.getElementById('wordsWrap');
-const hiddenInput = document.getElementById('hiddenInput');
-const guideText = document.getElementById('guideText');
-const bigTimer = document.getElementById('bigTimer');
+    function loadWords() {
+      container.innerHTML = "";
+      currentWords = shuffle(words).slice(0, 10);
+      currentWords.forEach(word => {
+        const wordEl = document.createElement("div");
+        wordEl.classList.add("word");
+        for (let letter of word) {
+          const span = document.createElement("span");
+          span.textContent = letter;
+          span.classList.add("letter");
+          wordEl.appendChild(span);
+        }
+        container.appendChild(wordEl);
+      });
+      currentIndex = 0;
+    }
 
-const btn15 = document.getElementById('btn15');
-const btn30 = document.getElementById('btn30');
-const btn60 = document.getElementById('btn60');
-const btnStart = document.getElementById('btnStart');
+    function startGame() {
+      score = 0;
+      time = 30;
+      result.classList.remove("active");
+      shareBtn.classList.add("hidden");
+      playAgain.classList.add("hidden");
+      input.value = "";
+      input.disabled = false;
+      input.focus();
+      loadWords();
+      timer = setInterval(() => {
+        time--;
+        timeDisplay.textContent = time;
+        if (time <= 0) endGame();
+      }, 1000);
+    }
 
-const statTime = document.getElementById('stat-time');
-const statScore = document.getElementById('stat-score');
-const statCorrect = document.getElementById('stat-correct');
-const statAcc = document.getElementById('stat-acc');
+    function endGame() {
+      clearInterval(timer);
+      input.disabled = true;
+      result.classList.add("active");
+      scoreDisplay.textContent = score;
+      playAgain.classList.remove("hidden");
+      shareBtn.classList.remove("hidden");
+    }
 
-const resultModal = document.getElementById('resultModal');
-const resWpm = document.getElementById('resWpm');
-const resAcc = document.getElementById('resAcc');
-const resCorrect = document.getElementById('resCorrect');
-const resTotal = document.getElementById('resTotal');
-const playAgain = document.getElementById('playAgain');
-const shareBtn = document.getElementById('shareBtn');
-const shareModal = document.getElementById('shareModal');
+    input.addEventListener("input", () => {
+      const typed = input.value.trim();
+      const wordsEl = container.querySelectorAll(".word");
+      let matchFound = false;
 
-let displayWords = [];    // current 10 words
-let poolIndex = 0;        // index into WORD_POOL for refill
-let activeIndex = 0;      // index of active word in displayWords (0..9)
-let timeLimit = 15;
-let timeLeft = 15;
-let timerId = null;
-let started = false;
+      wordsEl.forEach((wordEl, index) => {
+        const letters = wordEl.querySelectorAll(".letter");
+        const wordText = currentWords[index];
 
-let totalTypedWords = 0;
-let correctTypedWords = 0;
-let totalTypedChars = 0;
-let correctTypedChars = 0;
+        // reset styles
+        letters.forEach(l => l.classList.remove("active","correct","wrong"));
 
-let typedBuffer = ""; // user's typed characters for current word
+        // mark active letters
+        for (let i = 0; i < typed.length; i++) {
+          if (i < letters.length) {
+            letters[i].classList.add("active");
+            if (typed[i] === wordText[i]) {
+              letters[i].classList.add("correct");
+            } else {
+              letters[i].classList.add("wrong");
+            }
+          }
+        }
 
-/* init default UI */
-btn15.classList.add('primary');
-statTime.textContent = timeLimit + 's';
-bigTimer.textContent = timeLimit + 's';
+        // check full match
+        if (typed === wordText) {
+          score++;
+          input.value = "";
+          wordEl.style.opacity = "0.3";
+          currentWords[index] = "";
+          matchFound = true;
+        }
+      });
 
-/* attach events */
-btn15.addEventListener('click', ()=>selectTime(15, btn15));
-btn30.addEventListener('click', ()=>selectTime(30, btn30));
-btn60.addEventListener('click', ()=>selectTime(60, btn60));
-btnStart.addEventListener('click', ()=>begin());
+      if (matchFound) {
+        const remaining = currentWords.filter(w => w !== "").length;
+        if (remaining < 10) {
+          const needed = 10 - remaining;
+          const newWords = shuffle(words).slice(0, needed);
+          newWords.forEach(w => currentWords.push(w));
 
-hiddenInput.addEventListener('keydown', handleKeyDown);
-hiddenInput.addEventListener('input', handleInput);
-
-/* modal buttons */
-playAgain.addEventListener('click', ()=>{ closeModal(); begin(); });
-shareBtn.addEventListener('click', shareResult);
-shareModal.addEventListener('click', shareResult);
-
-/* helpers */
-function selectTime(seconds, btn){
-  timeLimit = seconds;
-  timeLeft = seconds;
-  statTime.textContent = seconds + 's';
-  bigTimer.textContent = seconds + 's';
-  [btn15,btn30,btn60].forEach(b => b.classList.remove('primary'));
-  btn.classList.add('primary');
-}
-
-function begin(){
-  resetSession();
-  fillDisplayWords();
-  renderWords();
-  // focus hidden input to capture typing
-  hiddenInput.focus();
-  guideText.textContent = 'Start typing to begin';
-  // note: timer starts on the first keypress (not on begin)
-}
-
-function resetSession(){
-  // if pool exhausted, reshuffle
-  if (poolIndex >= WORD_POOL.length - 30) {
-    poolIndex = 0;
-    shuffleArrayInPlace(WORD_POOL);
-  }
-  displayWords = [];
-  activeIndex = 0;
-  typedBuffer = "";
-  totalTypedWords = 0;
-  correctTypedWords = 0;
-  totalTypedChars = 0;
-  correctTypedChars = 0;
-  started = false;
-  clearInterval(timerId);
-  timeLeft = timeLimit;
-  statTime.textContent = timeLeft + 's';
-  bigTimer.textContent = timeLeft + 's';
-  statScore.textContent = '0';
-  statCorrect.textContent = '0';
-  statAcc.textContent = '0%';
-  hideModal();
-}
-
-function fillDisplayWords(){
-  displayWords = [];
-  for (let i=0;i<10;i++){
-    displayWords.push(WORD_POOL[(poolIndex++) % WORD_POOL.length]);
-  }
-}
-
-function renderWords(){
-  wordsWrap.innerHTML = '';
-  displayWords.forEach((w, idx) => {
-    const pill = document.createElement('div');
-    pill.className = 'word-pill';
-    // split into letters
-    [...w].forEach(l => {
-      const span = document.createElement('span');
-      span.className = 'letter';
-      span.textContent = l;
-      pill.appendChild(span);
+          // reload new words UI
+          container.innerHTML = "";
+          currentWords.filter(w=>w!=="").forEach(word => {
+            const wordEl = document.createElement("div");
+            wordEl.classList.add("word");
+            for (let letter of word) {
+              const span = document.createElement("span");
+              span.textContent = letter;
+              span.classList.add("letter");
+              wordEl.appendChild(span);
+            }
+            container.appendChild(wordEl);
+          });
+        }
+      }
     });
-    if (idx === activeIndex) pill.classList.add('active');
-    wordsWrap.appendChild(pill);
-    // stagger show
-    setTimeout(()=>pill.classList.add('show'), idx*18);
-  });
-  // update guide and stats
-  highlightActive();
-}
 
-/* typing logic: start timer on first real key */
-function handleKeyDown(e){
-  if (e.key === 'Tab') {
-    e.preventDefault();
-    if (!started) {
-      // if not started, Tab means focus (no-op)
-      hiddenInput.focus();
-      return;
-    }
-    // during run: skip current word (counts as incorrect)
-    if (timeLeft>0){
-      skipCurrentWord();
-      return;
-    } else {
-      // after finished allow restart
-      begin();
-      return;
-    }
-  }
-  if (e.key === ' '){
-    e.preventDefault();
-    submitCurrentWord();
-    return;
-  }
-  // on first alphanumeric key, start timer
-  if (!started && e.key.length === 1){
-    startTimer();
-    started = true;
-    guideText.style.opacity = 0;
-    guideText.textContent = '';
-  }
-}
+    startBtn.addEventListener("click", () => {
+      startGame();
+      startBtn.classList.add("hidden");
+    });
 
-/* input handler for per-letter glow */
-function handleInput(e){
-  // get typed value (we keep hiddenInput.value as buffer)
-  typedBuffer = hiddenInput.value;
-  // update letter visuals
-  updateLettersVisual();
-}
+    playAgain.addEventListener("click", () => {
+      startBtn.classList.remove("hidden");
+      result.classList.remove("active");
+    });
 
-/* update the letter spans for active word */
-function updateLettersVisual(){
-  const activePill = wordsWrap.querySelector('.word-pill.active');
-  if (!activePill) return;
-  const letters = activePill.querySelectorAll('.letter');
-  for (let i=0;i<letters.length;i++){
-    letters[i].classList.remove('current','correct','wrong');
-    const ch = typedBuffer[i];
-    if (ch === undefined){
-      // nothing typed here
-    } else if (ch === letters[i].textContent){
-      // correct char
-      letters[i].classList.add('correct');
-    } else {
-      letters[i].classList.add('wrong');
-    }
-    if (i === typedBuffer.length){
-      // current letter (glow)
-      letters[i].classList.add('current');
-    }
-  }
-}
-
-/* submit word when space pressed */
-function submitCurrentWord(){
-  const current = displayWords[activeIndex];
-  const typed = typedBuffer.trim();
-  totalTypedWords++;
-  totalTypedChars += typed.length;
-  // count correct chars for accuracy
-  let charCorrectThisWord = 0;
-  for (let i=0;i<Math.min(typed.length, current.length);i++){
-    if (typed[i] === current[i]) charCorrectThisWord++;
-  }
-  correctTypedChars += charCorrectThisWord;
-
-  if (typed === current){
-    correctTypedWords++;
-    markActive('correct');
-  } else {
-    markActive('wrong');
-  }
-  advanceWord();
-}
-
-/* skip current word via Tab (counts incorrect) */
-function skipCurrentWord(){
-  // mark as incorrect
-  markActive('wrong');
-  totalTypedWords++;
-  // no char additions (user didn't type)
-  advanceWord();
-}
-
-/* mark active pill visually */
-function markActive(state){
-  const activePill = wordsWrap.querySelector('.word-pill.active');
-  if (!activePill) return;
-  if (state === 'correct') activePill.classList.add('correct');
-  if (state === 'wrong') activePill.classList.add('incorrect');
-}
-
-/* advance to next word (or refill) */
-function advanceWord(){
-  // remove active class
-  const activePill = wordsWrap.querySelector('.word-pill.active');
-  if (activePill) activePill.classList.remove('active');
-  // shift displayWords left by one and push new word from pool
-  displayWords.shift();
-  displayWords.push(WORD_POOL[(poolIndex++) % WORD_POOL.length]);
-  // reset buffer and activeIndex stays 0
-  typedBuffer = '';
-  hiddenInput.value = '';
-  renderWords();
-  // update quick stats
-  statScore.textContent = correctTypedWords;
-  statCorrect.textContent = correctTypedWords;
-  const acc = totalTypedWords > 0 ? Math.round((correctTypedWords/totalTypedWords)*100) : 0;
-  statAcc.textContent = acc + '%';
-}
-
-/* highlight active word and reset current letter */
-function highlightActive(){
-  const activePill = wordsWrap.querySelector('.word-pill.active');
-  if (!activePill) return;
-  // ensure first letter has current class if nothing typed
-  const firstLetter = activePill.querySelector('.letter');
-  activePill.querySelectorAll('.letter').forEach(l=>{ l.classList.remove('current','correct','wrong'); });
-  firstLetter && firstLetter.classList.add('current');
-}
-
-/* timer */
-function startTimer(){
-  if (timerId) clearInterval(timerId);
-  timeLeft = timeLimit;
-  bigTimer.textContent = timeLeft + 's';
-  timerId = setInterval(()=>{
-    timeLeft--;
-    bigTimer.textContent = timeLeft + 's';
-    statTime.textContent = timeLeft + 's';
-    if (timeLeft <= 0) {
-      clearInterval(timerId);
-      finishSession();
-    }
-  }, 1000);
-}
-
-/* finish session and show modal results */
-function finishSession(){
-  started = false;
-  // disable input
-  hiddenInput.blur();
-  // compute stats
-  const total = totalTypedWords;
-  const correct = correctTypedWords;
-  const timeMinutes = timeLimit / 60;
-  const wpm = timeMinutes > 0 ? Math.round((correct / timeMinutes)) : (correct);
-  const accuracy = total > 0 ? Math.round((correct/total)*100) : 0;
-  resWpm.textContent = wpm;
-  resAcc.textContent = accuracy + '%';
-  resCorrect.textContent = correct;
-  resTotal.textContent = total;
-  // show modal
-  showModal();
-}
-
-/* modal helpers */
-function showModal(){
-  resultModal.style.display = 'flex';
-  resultModal.setAttribute('aria-hidden','false');
-}
-function hideModal(){
-  resultModal.style.display = 'none';
-  resultModal.setAttribute('aria-hidden','true');
-}
-
-/* UI share */
-function shareResult(){
-  const w = resWpm.textContent || '0';
-  const a = resAcc.textContent?.replace('%','') || '0';
-  const text = `I scored ${w} WPM with ${a}% accuracy on RialoType — try it yourself! 🚀`;
-  const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
-  window.open(url,'_blank','noopener');
-}
-
-/* utility: Fisher-Yates shuffle */
-function shuffleArray(arr){ // returns new arr
-  const a = arr.slice();
-  for (let i=a.length-1;i>0;i--){
-    const j = Math.floor(Math.random()*(i+1));
-    [a[i],a[j]] = [a[j],a[i]];
-  }
-  return a;
-}
-function shuffleArrayInPlace(arr){
-  for (let i=arr.length-1;i>0;i--){
-    const j = Math.floor(Math.random()*(i+1));
-    [arr[i],arr[j]] = [arr[j],arr[i]];
-  }
-}
-function shuffleArray(arr){ return shuffleArrayInPlace(arr), arr } // keep name earlier
-
-/* prepare pool */
-shuffleArrayInPlace(WORD_POOL);
-poolIndex = 0;
-
-/* start: show initial set but not start timer until typing */
-fillDisplayWords();
-renderWords();
-
-/* auto-focus hidden input to capture typing on click anywhere */
-document.addEventListener('click', ()=>hiddenInput.focus());
-
-/* keyboard: allow finishing with Tab after modal */
-document.addEventListener('keydown', (e)=>{
-  if (e.key === 'Tab' && resultModal.style.display === 'flex') {
-    e.preventDefault();
-    hideModal();
-    begin();
-  }
-});
-</script>
-</body>
-</html>
+    shareBtn.addEventListener("click", () => {
+      const text = `I just typed ${score}:contentReference[oaicite:1]{index=1}:contentReference[oaicite:2]{index=2}
