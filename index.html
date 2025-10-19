@@ -10,13 +10,14 @@
   :root{
     --bg:#07100C;
     --panel:rgba(7,16,12,0.65);
-    --rialo:#06E7A7;
+    --rialo:#06E7A7;   /* Rialo green */
     --muted:rgba(255,255,255,0.65);
     --danger:#ff4d4f;
     --glass: rgba(255,255,255,0.04);
   }
 
   html,body{height:100%;margin:0;background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#fff;}
+  /* background handled by .bg-layer so we can overlay two images faintly */
   .bg-layer{
     position:fixed;inset:0;z-index:0;
     background:
@@ -30,6 +31,7 @@
     content:"";position:absolute;inset:0;background:rgba(0,0,0,0.45);
   }
 
+  /* Page layout */
   .app {
     position:relative; z-index:10;
     min-height:100vh;
@@ -44,7 +46,9 @@
   .brand{display:flex;align-items:center;gap:12px;font-weight:800;font-size:18px;color:var(--rialo)}
   .brand .logo-mark{width:44px;height:44px;border-radius:8px;background:linear-gradient(135deg,#062816,#083720);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 26px rgba(6,231,167,0.07)}
   .nav{display:flex;gap:18px;align-items:center;color:rgba(255,255,255,0.85);font-weight:600}
+  .nav .muted{color:rgba(255,255,255,0.45);font-weight:500;font-size:13px}
 
+  /* Main game panel */
   .stage {
     width:100%;max-width:1100px;margin:0 auto;display:flex;gap:28px;align-items:flex-start;
   }
@@ -54,6 +58,7 @@
     min-height:520px;display:flex;flex-direction:column;align-items:center;position:relative;
   }
 
+  /* Timer top right inside panel */
   .timer-badge{
     position:absolute;top:18px;right:18px;background:rgba(0,0,0,0.25);padding:8px 12px;border-radius:12px;color:var(--rialo);font-weight:700;font-size:18px;border:1px solid rgba(255,255,255,0.03)
   }
@@ -61,6 +66,7 @@
   .title { font-size:22px;color:var(--rialo);margin-bottom:4px;font-weight:800 }
   .subtitle { color:var(--muted);font-size:13px;margin-bottom:18px }
 
+  /* typing area */
   .typing-area { width:100%;display:flex;flex-direction:column;align-items:center;gap:18px;margin-top:20px }
   .guide { color:var(--muted);font-size:15px }
   .words-wrap { width:100%;max-width:880px;display:flex;flex-wrap:wrap;gap:12px;justify-content:center;padding:12px 8px;transition:all .18s ease }
@@ -73,11 +79,14 @@
   .letter.correct{color:var(--rialo);background:transparent}
   .letter.wrong{color:var(--danger);background:transparent}
 
+  /* subtle fade in for words */
   .word-pill{opacity:0;transform:translateY(8px)}
   .word-pill.show{opacity:1;transform:translateY(0);transition:all .22s cubic-bezier(.2,.9,.25,1)}
-
+  
+  /* hidden input to capture typing */
   #hiddenInput{ position: absolute; left:-9999px; top:auto; width:1px; height:1px; opacity:0; }
 
+  /* right panel (results / controls) */
   .panel-right{
     width:360px;background:rgba(255,255,255,0.03);padding:18px;border-radius:12px;color:var(--muted);min-height:520px;
     display:flex;flex-direction:column;gap:14px;
@@ -93,9 +102,10 @@
   .result-row{display:flex;justify-content:space-between;padding:8px 6px;border-bottom:1px dashed rgba(255,255,255,0.03)}
   .result-row:last-child{border-bottom:0}
 
-  .result-actions{display:flex;gap:10px;margin-top:auto}
+  .result-actions{display:flex;gap:10px;margin-top:14px}
   .share-x{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--rialo);padding:8px 12px;border-radius:10px;font-weight:700;cursor:pointer}
 
+  /* result modal (fullscreen) */
   .modal {
     position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:linear-gradient(180deg,rgba(0,0,0,0.6),rgba(0,0,0,0.8));z-index:60;
   }
@@ -106,6 +116,7 @@
   .stat .label{color:var(--muted);font-size:13px}
   .stat .value{font-weight:800;font-size:20px;margin-top:6px}
 
+  /* responsive */
   @media (max-width:900px){
     .stage{flex-direction:column;padding:18px}
     .panel-right{width:100%}
@@ -118,16 +129,18 @@
     <header class="topbar">
       <div class="brand">
         <div class="logo-mark" aria-hidden>
+          <!-- small mark -->
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden><rect x="1" y="1" width="22" height="22" rx="4" fill="#042A1E"/><circle cx="12" cy="11.5" r="5.2" fill="#06E7A7"/></svg>
         </div>
         RIALO
       </div>
       <nav class="nav">
         <div>TYPING</div>
+        <div class="muted">LEADERBOARD</div>
       </nav>
     </header>
 
-    <main class="stage">
+    <main class="stage" role="main">
       <section class="panel-left">
         <div class="timer-badge" id="bigTimer">15s</div>
 
@@ -136,18 +149,24 @@
           <div class="subtitle">Type fast. Stay sharp. Climb the board.</div>
         </div>
 
-        <div class="typing-area">
+        <div class="typing-area" aria-live="polite">
           <div class="guide" id="guideText">Start typing to begin</div>
-          <div class="words-wrap" id="wordsWrap"></div>
+
+          <div class="words-wrap" id="wordsWrap" aria-hidden="false">
+            <!-- words (10) will be injected here -->
+          </div>
+
+          <!-- hidden input captures keystrokes -->
           <input id="hiddenInput" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
           <div style="height:14px"></div>
           <div style="font-size:13px;color:var(--muted)">Space to submit · Tab to skip · Tab after finish to restart</div>
         </div>
       </section>
 
-      <aside class="panel-right">
+      <aside class="panel-right" aria-labelledby="results">
         <div style="display:flex;align-items:center;justify-content:space-between">
           <div style="font-weight:800;color:var(--rialo)">Session</div>
+          <div style="font-size:13px;color:var(--muted)"></div>
         </div>
 
         <div class="controls">
@@ -164,6 +183,11 @@
           <div class="result-row"><div>Accuracy</div><div id="stat-acc">0%</div></div>
         </div>
 
+        <div style="margin-top:8px;color:var(--muted);font-size:13px">
+          • 10 words on screen · Space to submit · Tab to skip<br>
+          • Letters glow while typing, turn green if correct, red if wrong
+        </div>
+
         <div class="result-actions" style="margin-top:auto">
           <button class="share-x" id="shareBtn">Share on X</button>
         </div>
@@ -171,7 +195,8 @@
     </main>
   </div>
 
-  <div class="modal" id="resultModal">
+  <!-- fullscreen result modal -->
+  <div class="modal" id="resultModal" role="dialog" aria-modal="true" aria-hidden="true">
     <div class="card">
       <h2>Results</h2>
       <div class="stat-grid">
@@ -188,12 +213,386 @@
   </div>
 
 <script>
-/* keeps same game logic but ensures playAgain works perfectly */
-document.addEventListener("click", () => hiddenInput.focus());
-const playAgain = document.getElementById("playAgain");
-playAgain.addEventListener("click", () => { hideModal(); begin(); });
+/* RialoType — single-file game logic
+   Features:
+   - 10 words displayed
+   - per-letter glow while typing, green on correct, red on wrong
+   - Space to submit a word, Tab to skip (counts incorrect)
+   - Timer starts on first keystroke
+   - WPM / Accuracy calculations in result modal
+*/
 
-/* rest of your script exactly the same */
+const RIALO = [
+  "rialo","bridge","event","trigger","wallet","decentralize","onchain","protocol","node","token",
+  "mint","stake","vault","flow","relay","connector","stream","ledger","hash","chain",
+  "bridgeX","rnetwork","sync","orbit","pulse","quest","mission","portal","loop","anchor",
+  "rnode","rhub","grow","builder","treasury","fund","snapshot","action","signal","bridgein",
+  "bridgeout","rialonet","rpoint","rpass","rclaim","rdeploy","rindex","rflow","rbind","rlink"
+];
+
+const WEB3 = [
+  "blockchain","wallet","nft","defi","dao","staking","swap","gas","zk","rollup",
+  "validator","oracle","contract","evm","rpc","address","tokenomics","liquidity","bridge","mainnet",
+  "testnet","airdrops","mintlist","minting","burn","hashrate","nonce","signature","privatekey","publickey",
+  "solidity","rust","ipfs","p2p","consensus","fork","gwei","tx","txpool","explorer",
+  "bridgeFee","sequencer","relayer","nodeOperator","onRamp","offRamp","indexer","datafeed","zkproof","mev"
+];
+
+const WORD_POOL = shuffleArray([...RIALO, ...WEB3]);
+
+/* UI elements */
+const wordsWrap = document.getElementById('wordsWrap');
+const hiddenInput = document.getElementById('hiddenInput');
+const guideText = document.getElementById('guideText');
+const bigTimer = document.getElementById('bigTimer');
+
+const btn15 = document.getElementById('btn15');
+const btn30 = document.getElementById('btn30');
+const btn60 = document.getElementById('btn60');
+const btnStart = document.getElementById('btnStart');
+
+const statTime = document.getElementById('stat-time');
+const statScore = document.getElementById('stat-score');
+const statCorrect = document.getElementById('stat-correct');
+const statAcc = document.getElementById('stat-acc');
+
+const resultModal = document.getElementById('resultModal');
+const resWpm = document.getElementById('resWpm');
+const resAcc = document.getElementById('resAcc');
+const resCorrect = document.getElementById('resCorrect');
+const resTotal = document.getElementById('resTotal');
+const playAgain = document.getElementById('playAgain');
+const shareBtn = document.getElementById('shareBtn');
+const shareModal = document.getElementById('shareModal');
+
+let displayWords = [];    // current 10 words
+let poolIndex = 0;        // index into WORD_POOL for refill
+let activeIndex = 0;      // index of active word in displayWords (0..9)
+let timeLimit = 15;
+let timeLeft = 15;
+let timerId = null;
+let started = false;
+
+let totalTypedWords = 0;
+let correctTypedWords = 0;
+let totalTypedChars = 0;
+let correctTypedChars = 0;
+
+let typedBuffer = ""; // user's typed characters for current word
+
+/* init default UI */
+btn15.classList.add('primary');
+statTime.textContent = timeLimit + 's';
+bigTimer.textContent = timeLimit + 's';
+
+/* attach events */
+btn15.addEventListener('click', ()=>selectTime(15, btn15));
+btn30.addEventListener('click', ()=>selectTime(30, btn30));
+btn60.addEventListener('click', ()=>selectTime(60, btn60));
+btnStart.addEventListener('click', ()=>begin());
+
+hiddenInput.addEventListener('keydown', handleKeyDown);
+hiddenInput.addEventListener('input', handleInput);
+
+/* modal buttons */
+playAgain.addEventListener('click', ()=>{ closeModal(); begin(); });
+shareBtn.addEventListener('click', shareResult);
+shareModal.addEventListener('click', shareResult);
+
+/* helpers */
+function selectTime(seconds, btn){
+  timeLimit = seconds;
+  timeLeft = seconds;
+  statTime.textContent = seconds + 's';
+  bigTimer.textContent = seconds + 's';
+  [btn15,btn30,btn60].forEach(b => b.classList.remove('primary'));
+  btn.classList.add('primary');
+}
+
+function begin(){
+  resetSession();
+  fillDisplayWords();
+  renderWords();
+  // focus hidden input to capture typing
+  hiddenInput.focus();
+  guideText.textContent = 'Start typing to begin';
+  // note: timer starts on the first keypress (not on begin)
+}
+
+function resetSession(){
+  // if pool exhausted, reshuffle
+  if (poolIndex >= WORD_POOL.length - 30) {
+    poolIndex = 0;
+    shuffleArrayInPlace(WORD_POOL);
+  }
+  displayWords = [];
+  activeIndex = 0;
+  typedBuffer = "";
+  totalTypedWords = 0;
+  correctTypedWords = 0;
+  totalTypedChars = 0;
+  correctTypedChars = 0;
+  started = false;
+  clearInterval(timerId);
+  timeLeft = timeLimit;
+  statTime.textContent = timeLeft + 's';
+  bigTimer.textContent = timeLeft + 's';
+  statScore.textContent = '0';
+  statCorrect.textContent = '0';
+  statAcc.textContent = '0%';
+  hideModal();
+}
+
+function fillDisplayWords(){
+  displayWords = [];
+  for (let i=0;i<10;i++){
+    displayWords.push(WORD_POOL[(poolIndex++) % WORD_POOL.length]);
+  }
+}
+
+function renderWords(){
+  wordsWrap.innerHTML = '';
+  displayWords.forEach((w, idx) => {
+    const pill = document.createElement('div');
+    pill.className = 'word-pill';
+    // split into letters
+    [...w].forEach(l => {
+      const span = document.createElement('span');
+      span.className = 'letter';
+      span.textContent = l;
+      pill.appendChild(span);
+    });
+    if (idx === activeIndex) pill.classList.add('active');
+    wordsWrap.appendChild(pill);
+    // stagger show
+    setTimeout(()=>pill.classList.add('show'), idx*18);
+  });
+  // update guide and stats
+  highlightActive();
+}
+
+/* typing logic: start timer on first real key */
+function handleKeyDown(e){
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    if (!started) {
+      // if not started, Tab means focus (no-op)
+      hiddenInput.focus();
+      return;
+    }
+    // during run: skip current word (counts as incorrect)
+    if (timeLeft>0){
+      skipCurrentWord();
+      return;
+    } else {
+      // after finished allow restart
+      begin();
+      return;
+    }
+  }
+  if (e.key === ' '){
+    e.preventDefault();
+    submitCurrentWord();
+    return;
+  }
+  // on first alphanumeric key, start timer
+  if (!started && e.key.length === 1){
+    startTimer();
+    started = true;
+    guideText.style.opacity = 0;
+    guideText.textContent = '';
+  }
+}
+
+/* input handler for per-letter glow */
+function handleInput(e){
+  // get typed value (we keep hiddenInput.value as buffer)
+  typedBuffer = hiddenInput.value;
+  // update letter visuals
+  updateLettersVisual();
+}
+
+/* update the letter spans for active word */
+function updateLettersVisual(){
+  const activePill = wordsWrap.querySelector('.word-pill.active');
+  if (!activePill) return;
+  const letters = activePill.querySelectorAll('.letter');
+  for (let i=0;i<letters.length;i++){
+    letters[i].classList.remove('current','correct','wrong');
+    const ch = typedBuffer[i];
+    if (ch === undefined){
+      // nothing typed here
+    } else if (ch === letters[i].textContent){
+      // correct char
+      letters[i].classList.add('correct');
+    } else {
+      letters[i].classList.add('wrong');
+    }
+    if (i === typedBuffer.length){
+      // current letter (glow)
+      letters[i].classList.add('current');
+    }
+  }
+}
+
+/* submit word when space pressed */
+function submitCurrentWord(){
+  const current = displayWords[activeIndex];
+  const typed = typedBuffer.trim();
+  totalTypedWords++;
+  totalTypedChars += typed.length;
+  // count correct chars for accuracy
+  let charCorrectThisWord = 0;
+  for (let i=0;i<Math.min(typed.length, current.length);i++){
+    if (typed[i] === current[i]) charCorrectThisWord++;
+  }
+  correctTypedChars += charCorrectThisWord;
+
+  if (typed === current){
+    correctTypedWords++;
+    markActive('correct');
+  } else {
+    markActive('wrong');
+  }
+  advanceWord();
+}
+
+/* skip current word via Tab (counts incorrect) */
+function skipCurrentWord(){
+  // mark as incorrect
+  markActive('wrong');
+  totalTypedWords++;
+  // no char additions (user didn't type)
+  advanceWord();
+}
+
+/* mark active pill visually */
+function markActive(state){
+  const activePill = wordsWrap.querySelector('.word-pill.active');
+  if (!activePill) return;
+  if (state === 'correct') activePill.classList.add('correct');
+  if (state === 'wrong') activePill.classList.add('incorrect');
+}
+
+/* advance to next word (or refill) */
+function advanceWord(){
+  // remove active class
+  const activePill = wordsWrap.querySelector('.word-pill.active');
+  if (activePill) activePill.classList.remove('active');
+  // shift displayWords left by one and push new word from pool
+  displayWords.shift();
+  displayWords.push(WORD_POOL[(poolIndex++) % WORD_POOL.length]);
+  // reset buffer and activeIndex stays 0
+  typedBuffer = '';
+  hiddenInput.value = '';
+  renderWords();
+  // update quick stats
+  statScore.textContent = correctTypedWords;
+  statCorrect.textContent = correctTypedWords;
+  const acc = totalTypedWords > 0 ? Math.round((correctTypedWords/totalTypedWords)*100) : 0;
+  statAcc.textContent = acc + '%';
+}
+
+/* highlight active word and reset current letter */
+function highlightActive(){
+  const activePill = wordsWrap.querySelector('.word-pill.active');
+  if (!activePill) return;
+  // ensure first letter has current class if nothing typed
+  const firstLetter = activePill.querySelector('.letter');
+  activePill.querySelectorAll('.letter').forEach(l=>{ l.classList.remove('current','correct','wrong'); });
+  firstLetter && firstLetter.classList.add('current');
+}
+
+/* timer */
+function startTimer(){
+  if (timerId) clearInterval(timerId);
+  timeLeft = timeLimit;
+  bigTimer.textContent = timeLeft + 's';
+  timerId = setInterval(()=>{
+    timeLeft--;
+    bigTimer.textContent = timeLeft + 's';
+    statTime.textContent = timeLeft + 's';
+    if (timeLeft <= 0) {
+      clearInterval(timerId);
+      finishSession();
+    }
+  }, 1000);
+}
+
+/* finish session and show modal results */
+function finishSession(){
+  started = false;
+  // disable input
+  hiddenInput.blur();
+  // compute stats
+  const total = totalTypedWords;
+  const correct = correctTypedWords;
+  const timeMinutes = timeLimit / 60;
+  const wpm = timeMinutes > 0 ? Math.round((correct / timeMinutes)) : (correct);
+  const accuracy = total > 0 ? Math.round((correct/total)*100) : 0;
+  resWpm.textContent = wpm;
+  resAcc.textContent = accuracy + '%';
+  resCorrect.textContent = correct;
+  resTotal.textContent = total;
+  // show modal
+  showModal();
+}
+
+/* modal helpers */
+function showModal(){
+  resultModal.style.display = 'flex';
+  resultModal.setAttribute('aria-hidden','false');
+}
+function hideModal(){
+  resultModal.style.display = 'none';
+  resultModal.setAttribute('aria-hidden','true');
+}
+
+/* UI share */
+function shareResult(){
+  const w = resWpm.textContent || '0';
+  const a = resAcc.textContent?.replace('%','') || '0';
+  const text = `I scored ${w} WPM with ${a}% accuracy on RialoType — try it yourself! 🚀`;
+  const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+  window.open(url,'_blank','noopener');
+}
+
+/* utility: Fisher-Yates shuffle */
+function shuffleArray(arr){ // returns new arr
+  const a = arr.slice();
+  for (let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+function shuffleArrayInPlace(arr){
+  for (let i=arr.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]] = [arr[j],arr[i]];
+  }
+}
+function shuffleArray(arr){ return shuffleArrayInPlace(arr), arr } // keep name earlier
+
+/* prepare pool */
+shuffleArrayInPlace(WORD_POOL);
+poolIndex = 0;
+
+/* start: show initial set but not start timer until typing */
+fillDisplayWords();
+renderWords();
+
+/* auto-focus hidden input to capture typing on click anywhere */
+document.addEventListener('click', ()=>hiddenInput.focus());
+
+/* keyboard: allow finishing with Tab after modal */
+document.addEventListener('keydown', (e)=>{
+  if (e.key === 'Tab' && resultModal.style.display === 'flex') {
+    e.preventDefault();
+    hideModal();
+    begin();
+  }
+});
 </script>
 </body>
 </html>
